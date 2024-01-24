@@ -1,0 +1,56 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Checkout') {
+            steps {
+                // Étape pour récupérer le code depuis le référentiel Git
+                checkout scm
+            }
+        }
+
+        stage('Build') {
+            steps {
+                // Étape pour construire le projet Maven
+                sh 'mvn clean install'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                // Étape pour exécuter les tests automatisés
+                sh 'mvn test'
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                // Étape pour l'analyse SonarQube
+                script {
+                    def scannerHome = tool 'SonarQubeScanner'
+                    withSonarQubeEnv('SonarQube') {
+                        sh "${scannerHome}/bin/sonar-scanner"
+                    }
+                }
+            }
+        }
+
+        stage('Deploy to Nexus') {
+            steps {
+                // Étape pour publier les artefacts dans Nexus
+                sh 'mvn deploy'
+            }
+        }
+    }
+
+    post {
+        success {
+            // Actions à effectuer en cas de succès du pipeline
+            echo 'Build successful! Deploying to production...'
+        }
+        failure {
+            // Actions à effectuer en cas d'échec du pipeline
+            echo 'Build failed! Notify the team...'
+        }
+    }
+}
